@@ -646,7 +646,7 @@
 
 
 
-<script id="ghpages-wix-fallback">/* github.io fallback: the Wix runtime cannot run off Wix's servers, so replicate (1) the mobile menu toggle, (2) scroll-triggered entrance animations and (3) background/video-box playback */
+<script id="ghpages-wix-fallback">/* github.io fallback: the Wix runtime cannot run off Wix's servers, so replicate (1) the mobile menu toggle, (2) scroll-triggered entrance animations (3) background/video-box playback and (4) the contact form, which opens a pre-filled email */
 (function(){
   function $(id){return document.getElementById(id);}
   function setMenu(open){
@@ -669,6 +669,17 @@
   document.addEventListener('keydown',function(e){
     if(e.key==='Escape'&&isOpen())setMenu(false);
     if((e.key==='Enter'||e.key===' ')&&e.target.id==='MENU_AS_CONTAINER_TOGGLE'){e.preventDefault();setMenu(!isOpen());}
+  },true);
+
+  document.addEventListener('submit',function(e){
+    var f=e.target;if(!f||!f.classList||!f.classList.contains('wixui-form'))return;
+    e.preventDefault();e.stopPropagation();
+    if(f.reportValidity&&!f.reportValidity())return;
+    function val(sel){var el=f.querySelector(sel);return el?el.value.trim():'';}
+    var nombre=val('[name="nombre-"]'),apellidos=val('[name="apellidos"]'),email=val('[name="email"]'),msg=val('textarea');
+    var quien=(nombre+' '+apellidos).trim();
+    var body='Nombre: '+quien+'\nEmail: '+email+'\n\n'+msg;
+    location.href='mailto:administracion@gruaspiquer.es?subject='+encodeURIComponent('Contacto web'+(quien?' - '+quien:''))+'&body='+encodeURIComponent(body);
   },true);
 
   var seen=typeof WeakSet!=='undefined'?new WeakSet():null;
