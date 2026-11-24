@@ -736,11 +736,12 @@ historia</span></span></span></span></h2></div><div id="comp-m0mlm5vg" class="co
     busy(true);
     /* Wix's leftover runtime wraps window.fetch/XMLHttpRequest and blocks requests, so use a pristine fetch from a blank iframe */
     var fr=document.createElement('iframe');fr.style.display='none';fr.setAttribute('aria-hidden','true');document.body.appendChild(fr);
+    /* form-encoded body = no CORS preflight (FormSubmit's preflight can take 15s+) */
     var cleanFetch=(fr.contentWindow&&fr.contentWindow.fetch)?fr.contentWindow.fetch.bind(fr.contentWindow):window.fetch.bind(window);
-    var done=false,timer=setTimeout(function(){if(!done){done=true;busy(false);fail();}},15000);
+    var done=false,timer=setTimeout(function(){if(!done){done=true;busy(false);fail();}},45000);
     function finish(cb){return function(){if(done)return;done=true;clearTimeout(timer);if(fr.parentNode)fr.parentNode.removeChild(fr);busy(false);cb();};}
-    (window.__ghFormFetch||cleanFetch)('https://formsubmit.co/ajax/administracion@gruaspiquer.es',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify({Nombre:nombre,Apellidos:apellidos,email:email,Mensaje:msg,_replyto:email,_subject:subject,_template:'table',_captcha:'false'})})
+    (window.__ghFormFetch||cleanFetch)('https://formsubmit.co/ajax/administracion@gruaspiquer.es',{method:'POST',headers:{'Accept':'application/json','Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},
+      body:new URLSearchParams({Nombre:nombre,Apellidos:apellidos,email:email,Mensaje:msg,_replyto:email,_subject:subject,_template:'table',_captcha:'false'}).toString()})
       .then(function(r){return r.json().then(function(j){if(!r.ok||String(j.success)!=='true')throw new Error(j.message||r.status);});})
       .then(finish(ok),finish(fail));
   },true);
