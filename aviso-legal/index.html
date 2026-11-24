@@ -884,7 +884,7 @@
 
 
 
-<script id="ghpages-wix-fallback">/* github.io fallback: the Wix runtime cannot run off Wix's servers, so replicate (1) the mobile menu toggle, (2) scroll-triggered entrance animations (3) background/video-box playback and (4) the contact form, which opens a pre-filled email */
+<script id="ghpages-wix-fallback">/* github.io fallback: the Wix runtime cannot run off Wix's servers, so replicate (1) the mobile menu toggle, (2) scroll-triggered entrance animations (3) background/video-box playback and (4) the contact form, sent to administracion@gruaspiquer.es via FormSubmit */
 (function(){
   function $(id){return document.getElementById(id);}
   function setMenu(open){
@@ -913,11 +913,27 @@
     var f=e.target;if(!f||!f.classList||!f.classList.contains('wixui-form'))return;
     e.preventDefault();e.stopPropagation();
     if(f.reportValidity&&!f.reportValidity())return;
+    if(f.getAttribute('data-gh-sending'))return;
     function val(sel){var el=f.querySelector(sel);return el?el.value.trim():'';}
     var nombre=val('[name="nombre-"]'),apellidos=val('[name="apellidos"]'),email=val('[name="email"]'),msg=val('textarea');
-    var quien=(nombre+' '+apellidos).trim();
-    var body='Nombre: '+quien+'\nEmail: '+email+'\n\n'+msg;
-    location.href='mailto:administracion@gruaspiquer.es?subject='+encodeURIComponent('Contacto web'+(quien?' - '+quien:''))+'&body='+encodeURIComponent(body);
+    var quien=(nombre+' '+apellidos).trim(),subject='Contacto web'+(quien?' - '+quien:'');
+    var btn=f.querySelector('button'),label=btn&&btn.querySelector('.wixui-button__label'),orig=label?label.textContent:'';
+    function busy(on){if(on)f.setAttribute('data-gh-sending','1');else f.removeAttribute('data-gh-sending');if(btn){btn.disabled=on;btn.setAttribute('aria-disabled',on?'true':'false');}if(label)label.textContent=on?'Enviando...':orig;}
+    function ok(){var m=$('comp-m0mids0c')||[].filter.call(f.querySelectorAll('.wixui-rich-text'),function(x){return /Gracias/.test(x.textContent);})[0];
+      if(m){m.style.setProperty('visibility','visible','important');m.style.setProperty('opacity','1','important');}else alert('¡Gracias por contactarnos! Responderemos lo antes posible.');
+      [].forEach.call(f.querySelectorAll('input,textarea'),function(x){x.value='';});}
+    function fail(){if(confirm('No se pudo enviar el mensaje. ¿Quieres enviarlo desde tu correo electrónico?'))
+      location.href='mailto:administracion@gruaspiquer.es?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent('Nombre: '+quien+'\nEmail: '+email+'\n\n'+msg);}
+    busy(true);
+    /* Wix's leftover runtime wraps window.fetch/XMLHttpRequest and blocks requests, so use a pristine fetch from a blank iframe */
+    var fr=document.createElement('iframe');fr.style.display='none';fr.setAttribute('aria-hidden','true');document.body.appendChild(fr);
+    var cleanFetch=(fr.contentWindow&&fr.contentWindow.fetch)?fr.contentWindow.fetch.bind(fr.contentWindow):window.fetch.bind(window);
+    var done=false,timer=setTimeout(function(){if(!done){done=true;busy(false);fail();}},15000);
+    function finish(cb){return function(){if(done)return;done=true;clearTimeout(timer);if(fr.parentNode)fr.parentNode.removeChild(fr);busy(false);cb();};}
+    (window.__ghFormFetch||cleanFetch)('https://formsubmit.co/ajax/administracion@gruaspiquer.es',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({Nombre:nombre,Apellidos:apellidos,email:email,Mensaje:msg,_replyto:email,_subject:subject,_template:'table',_captcha:'false'})})
+      .then(function(r){return r.json().then(function(j){if(!r.ok||String(j.success)!=='true')throw new Error(j.message||r.status);});})
+      .then(finish(ok),finish(fail));
   },true);
 
   var seen=typeof WeakSet!=='undefined'?new WeakSet():null;
